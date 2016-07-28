@@ -256,4 +256,69 @@ contract('StringStore', function(accounts) {
 
   });
 
+  it("should be able to change owners between the 2 confirmations", function () {
+
+    var store = StringStore.deployed();
+    var blockNumber;
+    var shaKey3;
+    return store.stored(3)
+      .then(function (value3) {
+        assert.equal(value3, "", "There should be no string at 0");
+        return store.store.call(3, "value3", { from: accounts[0], gas: 300000 });
+      })
+      .then(function (success) {
+        assert.isFalse(success, "It should not accept storing");
+        // The block onto which the next transactions go
+        blockNumber = web3.eth.blockNumber + 1;
+        return store.store(3, "value3", { from: accounts[0], gas: 300000 });
+      })
+      .then(function (txn1) {
+        return Promise.all([
+          getEventsPromise(store.OnUnfinishedConfirmation({},
+            { fromBlock: blockNumber, toBlock: 'latest' })),
+          web3.eth.getTransactionReceiptMined(txn1)
+        ]);
+      })
+      .then(function (shaAndReceipt) {
+        shaKey3 = shaAndReceipt[0][0].args.key;
+        return store.confirmations(shaKey3);
+      })
+      .then(function (confirmation3) {
+        assert.equal(confirmation3.toNumber(), 1, "The pending confirmation should have been recorded");
+        return store.stored(3);
+      })
+      .then(function (value0) {
+        assert.equal(value0, "", "There should still be no string at 3");
+        // Let's change owners
+        return Promise.all([
+          store.changeOwner(accounts[1], accounts[2], { from: accounts[0], gas: 300000 }),
+          store.changeOwner(accounts[1], accounts[2], { from: accounts[1], gas: 300000 })
+        ]);
+      })
+      .then(function (txns) {
+        return Promise.all([
+          web3.eth.getTransactionReceiptMined(txns[0]),
+          web3.eth.getTransactionReceiptMined(txns[1])
+        ]);
+      })
+      .then(function (receipts) {
+        return store.store(3, "value3", { from: accounts[2], gas: 200000 });
+      })
+      .then(function (txn2) {
+        return web3.eth.getTransactionReceiptMined(txn2);
+      })
+      .then(function (receipt) {
+        return store.stored(3);
+      })
+      .then(function (value3) {
+        assert.equal(value3, "value3", "The string value should have been recorded");
+        return store.confirmations(shaKey3);
+      })
+      .then(function (confirmation3) {
+        assert.equal(confirmation3.toNumber(), 0, "The pending confirmation should have been removed");
+      });
+
+  });
+
 });
+
