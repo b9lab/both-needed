@@ -7,11 +7,11 @@ contract StringStore is MultiOwned {
 		MultiOwned(_owner2) {
 	}
 
-	function store(uint key0, string value) 
+	function store(uint key, string value) 
 		fromOwner
 		isConfirmed
 		returns (bool success) {
-		stored[key0] = value;
+		stored[key] = value;
 		return true;
 	}
 }

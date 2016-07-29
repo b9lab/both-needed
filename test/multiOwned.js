@@ -326,4 +326,19 @@ contract('MultiOwned', function(accounts) {
 
   });
 
+  it("should not allow to end up with 3 owners", function () {
+
+    return owned.changeOwner(accounts[2], accounts[3], { from: accounts[0], gas: 300000 })
+      .then(function (txn) {
+        return web3.eth.getTransactionReceiptMined(txn);
+      })
+      .then(function (receipt) {
+        assert.isBelow(receipt.gasUsed, 300000, "It should not have used all gas");
+        return expectedExceptionPromise(function () {
+          return owned.changeOwner(accounts[2], accounts[3], { from: accounts[1], gas: 300000 });
+        }, 300000);        
+      });
+
+  });
+
 });

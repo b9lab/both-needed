@@ -38,12 +38,11 @@ contract MultiOwned {
 		fromOwner
 		isConfirmed 
 		returns (bool success){
-		if (owners[newOwner]) {
+		if (!owners[oldOwner] || owners[newOwner]) {
 			throw;
 		}
 		owners[oldOwner] = false;
 		owners[newOwner] = true;
 		return true;
 	}
-
 }
