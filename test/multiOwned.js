@@ -40,6 +40,30 @@ var getEventsPromise = function (myFilter, count) {
   });
 };
 
+var expectedExceptionPromise = function (action, gasToUse) {
+  return new Promise(function (resolve, reject) {
+      try {
+        resolve(action());
+      } catch(e) {
+        reject(e);
+      }
+    })
+    .then(function (txn) {
+      return web3.eth.getTransactionReceiptMined(txn);
+    })
+    .then(function (receipt) {
+      // We are in Geth
+      assert.equal(receipt.gasUsed, gasToUse, "should have used all the gas");
+    })
+    .catch(function (e) {
+      if ((e + "").indexOf("invalid JUMP") > -1) {
+        // We are in TestRPC
+      } else {
+        throw e;
+      }
+    });
+};
+
 contract('MultiOwned', function(accounts) {
 
   var owned;
@@ -274,6 +298,30 @@ contract('MultiOwned', function(accounts) {
       .then(function (confirmations) {
         assert.equal(confirmations[0].toNumber(), 0, "The pending confirmation for owner 1 should have been removed");
         assert.equal(confirmations[1].toNumber(), 0, "The pending confirmation for owner 2 should have been removed");
+      });
+
+  });
+
+  it("should deploy a new MultiOwned", function () {
+
+    return MultiOwned.new(accounts[1], { from: accounts[0], gas: 300000 })
+      .then(function (_owned) {
+        owned = _owned;
+      });
+
+  });
+
+  it("should not allow to end up with a single owner", function () {
+
+    return owned.changeOwner(accounts[0], accounts[1], { from: accounts[0], gas: 300000 })
+      .then(function (txn) {
+        return web3.eth.getTransactionReceiptMined(txn);
+      })
+      .then(function (receipt) {
+        assert.isBelow(receipt.gasUsed, 300000, "It should not have used all gas");
+        return expectedExceptionPromise(function () {
+          return owned.changeOwner(accounts[0], accounts[1], { from: accounts[1], gas: 300000 });
+        }, 300000);        
       });
 
   });

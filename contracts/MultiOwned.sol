@@ -38,6 +38,9 @@ contract MultiOwned {
 		fromOwner
 		isConfirmed 
 		returns (bool success){
+		if (owners[newOwner]) {
+			throw;
+		}
 		owners[oldOwner] = false;
 		owners[newOwner] = true;
 		return true;
