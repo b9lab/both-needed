@@ -38,7 +38,14 @@ contract MultiOwned {
 		fromOwner
 		isConfirmed 
 		returns (bool success){
-		if (!owners[oldOwner] || owners[newOwner]) {
+		// Weird how this equivalent test actually throws always
+		// if (!owners[oldOwner] || owners[newOwner]) {
+		// 	throw;
+		// }
+		if (!owners[oldOwner]) {
+			throw;
+		}
+		if (owners[newOwner]) {
 			throw;
 		}
 		owners[oldOwner] = false;
