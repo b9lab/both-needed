@@ -1,3 +1,14 @@
+var StringStore = artifacts.require("./StringStore.sol");
+
+Extensions = require("../utils/extensions.js");
+Extensions.init(web3, {});
+
 module.exports = function(deployer, network) {
-  deployer.deploy(StringStore, web3.eth.accounts[1], { from: web3.eth.accounts[0], gas: 3000000 });
+    deployer
+        .then(() => web3.eth.getAccountsPromise())
+        .then(accounts => {
+            return deployer.deploy(
+                StringStore, accounts[1],
+                { from: accounts[0], gas: 3000000 });
+        });
 };
